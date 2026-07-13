@@ -33,6 +33,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -40,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,6 +89,15 @@ private fun MonitorScreen() {
     mutableStateOf(prefs.getBoolean(MonitorPrefs.KEY_NOTIFY, true))
   }
   var isManualRefreshing by remember { mutableStateOf(false) }
+  var selectedTab by remember { mutableIntStateOf(0) }
+
+  val connectionConfig = ConnectionConfig(
+    host = host,
+    port = port,
+    username = username,
+    password = password,
+    notificationsEnabled = notificationsEnabled,
+  )
 
   val permissionLauncher = rememberLauncherForActivityResult(
     ActivityResultContracts.RequestPermission(),
@@ -194,6 +206,10 @@ private fun MonitorScreen() {
             .height(3.dp)
             .background(SrOrange),
         )
+        TabRow(selectedTabIndex = selectedTab, containerColor = SrBlueDeep, contentColor = Color.White) {
+          Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Монитор") })
+          Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Файлы") })
+        }
       }
     },
   ) { padding ->
@@ -201,44 +217,52 @@ private fun MonitorScreen() {
       modifier = Modifier
         .fillMaxSize()
         .padding(padding)
-        .padding(horizontal = 16.dp, vertical = 12.dp)
-        .verticalScroll(rememberScrollState()),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
+        .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-      InfoCard(
-        isOnline = uiState.isOnline,
-        currentJob = uiState.currentJob,
-        workersBusy = uiState.workersBusy,
-        queueSize = uiState.queueSize,
-        doneToday = uiState.doneToday,
-        updatedAt = uiState.updatedAt,
-      )
+      when (selectedTab) {
+        0 -> Column(
+          modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+          InfoCard(
+            isOnline = uiState.isOnline,
+            currentJob = uiState.currentJob,
+            workersBusy = uiState.workersBusy,
+            queueSize = uiState.queueSize,
+            doneToday = uiState.doneToday,
+            updatedAt = uiState.updatedAt,
+          )
 
-      SettingsCard(
-        host = host,
-        onHostChange = { host = it },
-        port = port,
-        onPortChange = { port = it },
-        username = username,
-        onUsernameChange = { username = it },
-        password = password,
-        onPasswordChange = { password = it },
-        notificationsEnabled = notificationsEnabled,
-        onNotificationsToggle = { onNotificationsToggle(it) },
-        notifyPermissionOk = notifyPermissionOk,
-        isManualRefreshing = isManualRefreshing,
-        onRefresh = { refresh() },
-      )
+          SettingsCard(
+            host = host,
+            onHostChange = { host = it },
+            port = port,
+            onPortChange = { port = it },
+            username = username,
+            onUsernameChange = { username = it },
+            password = password,
+            onPasswordChange = { password = it },
+            notificationsEnabled = notificationsEnabled,
+            onNotificationsToggle = { onNotificationsToggle(it) },
+            notifyPermissionOk = notifyPermissionOk,
+            isManualRefreshing = isManualRefreshing,
+            onRefresh = { refresh() },
+          )
 
-      Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(8.dp))
 
-      Text(
-        text = "© @MaxCherepanov",
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
+          Text(
+            text = "© @MaxCherepanov",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+        1 -> FilesTab(config = connectionConfig.copy(host = host.trim()), isVisible = selectedTab == 1)
+      }
     }
   }
 }

@@ -6,6 +6,11 @@ Android-приложение для мониторинга очереди обр
 
 ![Главный экран приложения](docs/images/ui.png)
 
+## Возможности
+
+- **Монитор** — статус worker, очередь, прогресс текущей задачи, уведомления при завершении
+- **Файлы** — загрузка на сервер, запуск AI → FLAC, скачивание готовых, удаление из input (с прогресс-баром при transfer)
+
 ## Быстрый старт
 
 ### Требования
@@ -21,9 +26,11 @@ git clone git@gitverse.ru:Max_Cherep/super-resolution-android.git
 cd super-resolution-android
 # Укажите путь к SDK в local.properties: sdk.dir=/path/to/Android/Sdk
 ./gradlew assembleDebug
+# или release (подпись debug-ключом для личного использования):
+./gradlew assembleRelease
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk`
+APK: `app/build/outputs/apk/debug/app-debug.apk` или `app/build/outputs/apk/release/app-release.apk`
 
 ### Установка на телефон
 
