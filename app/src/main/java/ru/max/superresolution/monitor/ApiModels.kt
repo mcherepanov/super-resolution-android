@@ -6,6 +6,8 @@ data class InputFile(
     @SerializedName("name") val name: String,
     @SerializedName("size_bytes") val sizeBytes: Long,
     @SerializedName("busy") val busy: Boolean,
+    @SerializedName("corrupted") val corrupted: Boolean = false,
+    @SerializedName("error_message") val errorMessage: String? = null,
 )
 
 data class InputFilesResponse(
@@ -17,6 +19,7 @@ data class UploadResponse(
     @SerializedName("status") val status: String,
     @SerializedName("saved_audio") val savedAudio: Int,
     @SerializedName("saved_names") val savedNames: List<String>,
+    @SerializedName("corrupted_names") val corruptedNames: List<String> = emptyList(),
     @SerializedName("errors") val errors: List<String>,
 )
 
@@ -32,6 +35,7 @@ data class ProcessResponse(
     @SerializedName("skipped_missing") val skippedMissing: List<String>,
     @SerializedName("skipped_noop") val skippedNoop: List<String>,
     @SerializedName("skipped_busy") val skippedBusy: List<String>,
+    @SerializedName("skipped_corrupted") val skippedCorrupted: List<String> = emptyList(),
 )
 
 data class ReadyJob(

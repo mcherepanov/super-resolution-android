@@ -93,6 +93,10 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
         }
         val msg = buildString {
           if (result.savedAudio > 0) append("Загружено: ${result.savedAudio}")
+          if (result.corruptedNames.isNotEmpty()) {
+            if (isNotEmpty()) append("; ")
+            append("corrupted: ${result.corruptedNames.joinToString()}")
+          }
           if (result.errors.isNotEmpty()) {
             if (isNotEmpty()) append("; ")
             append(result.errors.joinToString("; "))
@@ -286,23 +290,47 @@ private fun InputFileRow(
   onDelete: () -> Unit,
 ) {
   Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    Text(file.name, fontWeight = FontWeight.Medium)
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(file.name, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+      if (file.corrupted) {
+        Text(
+          "corrupted",
+          style = MaterialTheme.typography.labelSmall,
+          fontWeight = FontWeight.SemiBold,
+          color = SrOrange,
+        )
+      }
+    }
     Text(
-      "${formatFileSize(file.sizeBytes)}${if (file.busy) " · в очереди" else ""}",
+      buildString {
+        append(formatFileSize(file.sizeBytes))
+        if (file.busy) append(" · в очереди")
+        if (file.corrupted) append(" · битый файл")
+      },
       style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      color = if (file.corrupted) SrOrange else MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    file.errorMessage?.takeIf { file.corrupted }?.let {
+      Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-      OutlinedButton(
-        onClick = onProcess,
-        enabled = !busy && !file.busy,
-        modifier = Modifier.weight(1f),
-      ) {
-        Text("AI → FLAC")
+      if (!file.corrupted) {
+        OutlinedButton(
+          onClick = onProcess,
+          enabled = !busy && !file.busy,
+          modifier = Modifier.weight(1f),
+        ) {
+          Text("AI → FLAC")
+        }
       }
       TextButton(
         onClick = onDelete,
         enabled = !busy && !file.busy,
+        modifier = if (file.corrupted) Modifier.fillMaxWidth() else Modifier,
       ) {
         Text("Удалить", color = SrErrorRed)
       }
@@ -326,6 +354,7 @@ private fun ReadyJobRow(job: ReadyJob, busy: Boolean, onDownload: () -> Unit) {
 private fun processMessage(result: ProcessResponse): String {
   return when {
     result.queued > 0 -> "В очередь: ${result.queued}"
+    result.skippedCorrupted.isNotEmpty() -> "Corrupted: ${result.skippedCorrupted.joinToString()}"
     result.skippedBusy.isNotEmpty() -> "Уже в очереди: ${result.skippedBusy.joinToString()}"
     result.skippedNoop.isNotEmpty() -> "Без изменений: ${result.skippedNoop.joinToString()}"
     result.skippedMissing.isNotEmpty() -> "Не найдено: ${result.skippedMissing.joinToString()}"
