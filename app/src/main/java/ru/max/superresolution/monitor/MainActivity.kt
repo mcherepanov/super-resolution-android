@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import ru.max.superresolution.monitor.BuildConfig
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -189,7 +190,7 @@ private fun MonitorScreen() {
             Column {
               Text("Super Resolution", fontWeight = FontWeight.Bold)
               Text(
-                "Monitor",
+                "Monitor · v${BuildConfig.VERSION_NAME} · ${BuildConfig.VERSION_CODE}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.88f),
               )

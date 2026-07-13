@@ -17,6 +17,8 @@ data class CurrentJob(
 data class StatusResponse(
     @SerializedName("status") val status: String,
     @SerializedName("timestamp") val timestamp: Long,
+    @SerializedName("app_version") val appVersion: String? = null,
+    @SerializedName("app_build") val appBuild: Int? = null,
     @SerializedName("queue_size") val queueSize: Int,
     @SerializedName("workers_total") val workersTotal: Int,
     @SerializedName("workers_busy") val workersBusy: Int,

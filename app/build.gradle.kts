@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val versionProps = Properties().apply {
+    val file = rootProject.file("version.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+val appVersion = versionProps.getProperty("version", "0.99")
+val appPrerelease = versionProps.getProperty("prerelease", "beta")
+val appBuild = versionProps.getProperty("build", "1").toInt()
+val appVersionName = if (appPrerelease.isNotBlank()) "$appVersion-$appPrerelease" else appVersion
 
 android {
     namespace = "ru.max.superresolution.monitor"
@@ -12,8 +25,8 @@ android {
         applicationId = "ru.max.superresolution.monitor"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = appBuild
+        versionName = appVersionName
     }
 
     buildTypes {
@@ -34,6 +47,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
