@@ -70,7 +70,7 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
         readyJobs = ready.jobs
       } catch (e: Exception) {
         if (!silent) {
-          Toast.makeText(context, e.message ?: "Ошибка загрузки списка", Toast.LENGTH_LONG).show()
+          Toast.makeText(context, ApiErrors.userMessage(e), Toast.LENGTH_LONG).show()
         }
       } finally {
         if (!silent) isLoading = false
@@ -105,7 +105,7 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
         Toast.makeText(context, msg.ifEmpty { "Готово" }, Toast.LENGTH_LONG).show()
         reload(silent = true)
       } catch (e: Exception) {
-        Toast.makeText(context, e.message ?: "Ошибка загрузки", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, ApiErrors.userMessage(e), Toast.LENGTH_LONG).show()
       } finally {
         busyAction = null
         transferProgress = null
@@ -209,7 +209,7 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
                   Toast.makeText(context, processMessage(result), Toast.LENGTH_LONG).show()
                   reload(silent = true)
                 } catch (e: Exception) {
-                  Toast.makeText(context, e.message ?: "Ошибка", Toast.LENGTH_LONG).show()
+                  Toast.makeText(context, ApiErrors.userMessage(e), Toast.LENGTH_LONG).show()
                 } finally {
                   busyAction = null
                 }
@@ -224,7 +224,7 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
                   Toast.makeText(context, "Удалено: ${file.name}", Toast.LENGTH_SHORT).show()
                   reload(silent = true)
                 } catch (e: Exception) {
-                  Toast.makeText(context, e.message ?: "Ошибка удаления", Toast.LENGTH_LONG).show()
+                  Toast.makeText(context, ApiErrors.userMessage(e), Toast.LENGTH_LONG).show()
                 } finally {
                   busyAction = null
                 }
@@ -268,7 +268,7 @@ fun FilesTab(config: ConnectionConfig, isVisible: Boolean) {
                   Toast.makeText(context, "Сохранено: $path", Toast.LENGTH_LONG).show()
                   reload(silent = true)
                 } catch (e: Exception) {
-                  Toast.makeText(context, e.message ?: "Ошибка скачивания", Toast.LENGTH_LONG).show()
+                  Toast.makeText(context, ApiErrors.userMessage(e), Toast.LENGTH_LONG).show()
                 } finally {
                   busyAction = null
                   transferProgress = null

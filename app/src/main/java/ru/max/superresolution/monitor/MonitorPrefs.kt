@@ -8,6 +8,7 @@ object MonitorPrefs {
   const val KEY_PASS = "pass"
   const val KEY_NOTIFY = "notify_enabled"
   const val KEY_DARK_THEME = "dark_theme"
+  const val KEY_ONBOARDING_DONE = "onboarding_done"
   const val DEFAULT_PORT = "8080"
   const val POLL_INTERVAL_MS = 3_000L
 }

@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.DarkMode
@@ -28,6 +33,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,6 +54,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -124,6 +131,17 @@ private fun MonitorScreen(
   }
   var isManualRefreshing by remember { mutableStateOf(false) }
   var destination by remember { mutableStateOf(AppDestination.Monitor) }
+  var showOnboarding by remember {
+    mutableStateOf(
+      !prefs.getBoolean(MonitorPrefs.KEY_ONBOARDING_DONE, false) &&
+        (prefs.getString(MonitorPrefs.KEY_HOST, "").orEmpty()).isBlank(),
+    )
+  }
+
+  fun markOnboardingDone() {
+    prefs.edit().putBoolean(MonitorPrefs.KEY_ONBOARDING_DONE, true).apply()
+    showOnboarding = false
+  }
 
   val connectionConfig = ConnectionConfig(
     host = host,
@@ -187,7 +205,7 @@ private fun MonitorScreen(
     }
   }
 
-  LaunchedEffect(uiState.updatedAt) {
+  LaunchedEffect(uiState.updatedAt, uiState.lastError, uiState.isOnline) {
     if (isManualRefreshing) {
       isManualRefreshing = false
     }
@@ -195,7 +213,8 @@ private fun MonitorScreen(
 
   fun refresh() {
     if (host.trim().isEmpty()) {
-      Toast.makeText(context, "Укажите адрес сервера", Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, "Укажите адрес сервера в Настройках", Toast.LENGTH_SHORT).show()
+      destination = AppDestination.Settings
       return
     }
     persistSettings()
@@ -213,6 +232,34 @@ private fun MonitorScreen(
       delay(5_000)
       isManualRefreshing = false
     }
+  }
+
+  if (showOnboarding) {
+    AlertDialog(
+      onDismissRequest = { markOnboardingDone() },
+      title = { Text("Подключение к серверу") },
+      text = {
+        Text(
+          "Укажите IP-адрес сервера Super Resolution в той же Wi‑Fi сети " +
+            "или при доступе через VPN. Порт по умолчанию — 8080.",
+        )
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            markOnboardingDone()
+            destination = AppDestination.Settings
+          },
+        ) {
+          Text("К настройкам")
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { markOnboardingDone() }) {
+          Text("Позже")
+        }
+      },
+    )
   }
 
   ModalNavigationDrawer(
@@ -315,37 +362,61 @@ private fun MonitorScreen(
   }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun MonitorDestination(
   uiState: MonitorUiState,
   isManualRefreshing: Boolean,
   onRefresh: () -> Unit,
 ) {
-  Column(
+  val pullState = rememberPullRefreshState(
+    refreshing = isManualRefreshing,
+    onRefresh = onRefresh,
+  )
+  Box(
     modifier = Modifier
       .fillMaxSize()
-      .verticalScroll(rememberScrollState()),
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+      .pullRefresh(pullState),
   ) {
-    InfoCard(
-      isOnline = uiState.isOnline,
-      currentJob = uiState.currentJob,
-      workersBusy = uiState.workersBusy,
-      queueSize = uiState.queueSize,
-      doneToday = uiState.doneToday,
-      updatedAt = uiState.updatedAt,
-    )
-    Button(
-      onClick = onRefresh,
-      enabled = !isManualRefreshing,
-      modifier = Modifier.fillMaxWidth(),
-      colors = ButtonDefaults.buttonColors(
-        containerColor = SrBlueDeep,
-        contentColor = Color.White,
-      ),
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState()),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      Text(if (isManualRefreshing) "Загрузка…" else "Обновить")
+      InfoCard(
+        isOnline = uiState.isOnline,
+        currentJob = uiState.currentJob,
+        workersBusy = uiState.workersBusy,
+        queueSize = uiState.queueSize,
+        doneToday = uiState.doneToday,
+        updatedAt = uiState.updatedAt,
+      )
+      uiState.lastError?.let { error ->
+        Text(
+          text = error,
+          style = MaterialTheme.typography.bodyMedium,
+          color = SrErrorRed,
+        )
+      }
+      Button(
+        onClick = onRefresh,
+        enabled = !isManualRefreshing,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+          containerColor = SrBlueDeep,
+          contentColor = Color.White,
+        ),
+      ) {
+        Text(if (isManualRefreshing) "Загрузка…" else "Обновить")
+      }
     }
+    PullRefreshIndicator(
+      refreshing = isManualRefreshing,
+      state = pullState,
+      modifier = Modifier.align(Alignment.TopCenter),
+      contentColor = SrOrange,
+    )
   }
 }
 

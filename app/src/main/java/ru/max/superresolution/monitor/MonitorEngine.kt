@@ -34,7 +34,7 @@ object MonitorEngine {
       val api = NetworkClient.createApi(config.host, config.port, config.username, config.password)
       applyResponse(context, api.getMobileStatus(), config.notificationsEnabled)
       true
-    } catch (_: Exception) {
+    } catch (e: Exception) {
       MonitorRepository.update(
         MonitorUiState(
           isOnline = false,
@@ -44,6 +44,7 @@ object MonitorEngine {
           updatedAt = null,
           appVersion = null,
           appBuild = null,
+          lastError = ApiErrors.userMessage(e),
         ),
       )
       false
@@ -81,6 +82,7 @@ object MonitorEngine {
         updatedAt = formatTimestamp(response.timestamp),
         appVersion = response.appVersion,
         appBuild = response.appBuild,
+        lastError = null,
       ),
     )
   }

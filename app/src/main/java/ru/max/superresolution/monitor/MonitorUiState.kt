@@ -9,4 +9,5 @@ data class MonitorUiState(
   val updatedAt: String? = null,
   val appVersion: String? = null,
   val appBuild: Int? = null,
+  val lastError: String? = null,
 )
