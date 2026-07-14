@@ -4,15 +4,12 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import ru.max.superresolution.monitor.BuildConfig
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,27 +20,41 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,13 +72,30 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private enum class AppDestination(val title: String, val icon: ImageVector) {
+  Monitor("Монитор", Icons.Filled.MonitorHeart),
+  Files("Файлы", Icons.Filled.Folder),
+  Settings("Настройки", Icons.Filled.Settings),
+  About("О приложении", Icons.Filled.Info),
+}
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     NotificationHelper.ensureChannels(this)
     setContent {
-      AppTheme {
-        MonitorScreen()
+      val prefs = remember { getSharedPreferences(MonitorPrefs.NAME, Context.MODE_PRIVATE) }
+      var darkTheme by remember {
+        mutableStateOf(prefs.getBoolean(MonitorPrefs.KEY_DARK_THEME, false))
+      }
+      AppTheme(darkTheme = darkTheme) {
+        MonitorScreen(
+          darkTheme = darkTheme,
+          onDarkThemeChange = { enabled ->
+            darkTheme = enabled
+            prefs.edit().putBoolean(MonitorPrefs.KEY_DARK_THEME, enabled).apply()
+          },
+        )
       }
     }
   }
@@ -74,11 +103,15 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MonitorScreen() {
+private fun MonitorScreen(
+  darkTheme: Boolean,
+  onDarkThemeChange: (Boolean) -> Unit,
+) {
   val context = LocalContext.current
   val prefs = remember { context.getSharedPreferences(MonitorPrefs.NAME, Context.MODE_PRIVATE) }
   val scope = rememberCoroutineScope()
   val uiState by MonitorRepository.uiState.collectAsState()
+  val drawerState = rememberDrawerState(DrawerValue.Closed)
 
   var host by remember { mutableStateOf(prefs.getString(MonitorPrefs.KEY_HOST, "") ?: "") }
   var port by remember {
@@ -90,7 +123,7 @@ private fun MonitorScreen() {
     mutableStateOf(prefs.getBoolean(MonitorPrefs.KEY_NOTIFY, true))
   }
   var isManualRefreshing by remember { mutableStateOf(false) }
-  var selectedTab by remember { mutableIntStateOf(0) }
+  var destination by remember { mutableStateOf(AppDestination.Monitor) }
 
   val connectionConfig = ConnectionConfig(
     host = host,
@@ -182,17 +215,56 @@ private fun MonitorScreen() {
     }
   }
 
-  Scaffold(
-    topBar = {
-      Column {
+  ModalNavigationDrawer(
+    drawerState = drawerState,
+    drawerContent = {
+      ModalDrawerSheet {
+        Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+          Text(
+            text = "Super Resolution",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+          )
+          HorizontalDivider()
+          Spacer(modifier = Modifier.height(8.dp))
+          AppDestination.entries.forEach { item ->
+            NavigationDrawerItem(
+              label = { Text(item.title) },
+              selected = destination == item,
+              onClick = {
+                destination = item
+                scope.launch { drawerState.close() }
+              },
+              icon = { Icon(item.icon, contentDescription = item.title) },
+              colors = NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+              ),
+            )
+          }
+        }
+      }
+    },
+  ) {
+    Scaffold(
+      topBar = {
         TopAppBar(
           title = {
             Column {
               Text("Super Resolution", fontWeight = FontWeight.Bold)
               Text(
-                "Monitor · v${BuildConfig.VERSION_NAME} · ${BuildConfig.VERSION_CODE}",
+                destination.title,
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.88f),
+              )
+            }
+          },
+          navigationIcon = {
+            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+              Icon(
+                imageVector = if (drawerState.isOpen) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
+                contentDescription = "Меню",
+                tint = Color.White,
               )
             }
           },
@@ -201,42 +273,25 @@ private fun MonitorScreen() {
             titleContentColor = Color.White,
           ),
         )
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(3.dp)
-            .background(SrOrange),
-        )
-        TabRow(selectedTabIndex = selectedTab, containerColor = SrBlueDeep, contentColor = Color.White) {
-          Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Монитор") })
-          Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Файлы") })
-        }
-      }
-    },
-  ) { padding ->
-    Column(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(padding)
-        .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-      when (selectedTab) {
-        0 -> Column(
-          modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-          verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          InfoCard(
-            isOnline = uiState.isOnline,
-            currentJob = uiState.currentJob,
-            workersBusy = uiState.workersBusy,
-            queueSize = uiState.queueSize,
-            doneToday = uiState.doneToday,
-            updatedAt = uiState.updatedAt,
+      },
+    ) { padding ->
+      Column(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(padding)
+          .padding(horizontal = 16.dp, vertical = 12.dp),
+      ) {
+        when (destination) {
+          AppDestination.Monitor -> MonitorDestination(
+            uiState = uiState,
+            isManualRefreshing = isManualRefreshing,
+            onRefresh = { refresh() },
           )
-
-          SettingsCard(
+          AppDestination.Files -> FilesTab(
+            config = connectionConfig.copy(host = host.trim()),
+            isVisible = destination == AppDestination.Files,
+          )
+          AppDestination.Settings -> SettingsDestination(
             host = host,
             onHostChange = { host = it },
             port = port,
@@ -248,21 +303,172 @@ private fun MonitorScreen() {
             notificationsEnabled = notificationsEnabled,
             onNotificationsToggle = { onNotificationsToggle(it) },
             notifyPermissionOk = notifyPermissionOk,
+            darkTheme = darkTheme,
+            onDarkThemeChange = onDarkThemeChange,
             isManualRefreshing = isManualRefreshing,
             onRefresh = { refresh() },
           )
-
-          Spacer(modifier = Modifier.height(8.dp))
-
-          Text(
-            text = "© @MaxCherepanov",
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
+          AppDestination.About -> AboutDestination(uiState = uiState)
         }
-        1 -> FilesTab(config = connectionConfig.copy(host = host.trim()), isVisible = selectedTab == 1)
+      }
+    }
+  }
+}
+
+@Composable
+private fun MonitorDestination(
+  uiState: MonitorUiState,
+  isManualRefreshing: Boolean,
+  onRefresh: () -> Unit,
+) {
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    InfoCard(
+      isOnline = uiState.isOnline,
+      currentJob = uiState.currentJob,
+      workersBusy = uiState.workersBusy,
+      queueSize = uiState.queueSize,
+      doneToday = uiState.doneToday,
+      updatedAt = uiState.updatedAt,
+    )
+    Button(
+      onClick = onRefresh,
+      enabled = !isManualRefreshing,
+      modifier = Modifier.fillMaxWidth(),
+      colors = ButtonDefaults.buttonColors(
+        containerColor = SrBlueDeep,
+        contentColor = Color.White,
+      ),
+    ) {
+      Text(if (isManualRefreshing) "Загрузка…" else "Обновить")
+    }
+  }
+}
+
+@Composable
+private fun SettingsDestination(
+  host: String,
+  onHostChange: (String) -> Unit,
+  port: String,
+  onPortChange: (String) -> Unit,
+  username: String,
+  onUsernameChange: (String) -> Unit,
+  password: String,
+  onPasswordChange: (String) -> Unit,
+  notificationsEnabled: Boolean,
+  onNotificationsToggle: (Boolean) -> Unit,
+  notifyPermissionOk: Boolean,
+  darkTheme: Boolean,
+  onDarkThemeChange: (Boolean) -> Unit,
+  isManualRefreshing: Boolean,
+  onRefresh: () -> Unit,
+) {
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    SettingsCard(
+      host = host,
+      onHostChange = onHostChange,
+      port = port,
+      onPortChange = onPortChange,
+      username = username,
+      onUsernameChange = onUsernameChange,
+      password = password,
+      onPasswordChange = onPasswordChange,
+      notificationsEnabled = notificationsEnabled,
+      onNotificationsToggle = onNotificationsToggle,
+      notifyPermissionOk = notifyPermissionOk,
+      isManualRefreshing = isManualRefreshing,
+      onRefresh = onRefresh,
+    )
+
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = RoundedCornerShape(12.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(Icons.Filled.DarkMode, contentDescription = null, tint = SrOrange)
+          Column {
+            Text("Тёмная тема", fontWeight = FontWeight.SemiBold)
+            Text(
+              if (darkTheme) "Включена" else "Выключена",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+        }
+        Switch(checked = darkTheme, onCheckedChange = onDarkThemeChange)
+      }
+    }
+  }
+}
+
+@Composable
+private fun AboutDestination(uiState: MonitorUiState) {
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = RoundedCornerShape(12.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+      elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+      Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+      ) {
+        Text("SR Monitor", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(
+          "Клиент для self-hosted Super Resolution",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider()
+        Text("Клиент", fontWeight = FontWeight.SemiBold)
+        Text("Версия: ${BuildConfig.VERSION_NAME}")
+        Text("Сборка: ${BuildConfig.VERSION_CODE}")
+        HorizontalDivider()
+        Text("Сервер", fontWeight = FontWeight.SemiBold)
+        val serverLabel = when {
+          uiState.appVersion != null && uiState.appBuild != null ->
+            "${uiState.appVersion} · ${uiState.appBuild}"
+          uiState.appVersion != null -> uiState.appVersion
+          uiState.isOnline == true -> "онлайн (версия не передана)"
+          uiState.isOnline == false -> "недоступен"
+          else -> "—"
+        }
+        Text("Версия: $serverLabel")
+        HorizontalDivider()
+        Text(
+          text = "© @MaxCherepanov",
+          modifier = Modifier.fillMaxWidth(),
+          textAlign = TextAlign.Center,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
       }
     }
   }
@@ -287,6 +493,7 @@ private fun InfoCard(
     false -> "OFFLINE"
     null -> "—"
   }
+  val trackColor = MaterialTheme.colorScheme.outlineVariant
 
   Card(
     modifier = Modifier.fillMaxWidth(),
@@ -351,7 +558,7 @@ private fun InfoCard(
             .fillMaxWidth()
             .height(8.dp),
           color = SrOrange,
-          trackColor = SrOutlineVariant,
+          trackColor = trackColor,
         )
         Text(
           text = "${pct.toInt()}%",
@@ -375,7 +582,7 @@ private fun InfoCard(
             .fillMaxWidth()
             .height(8.dp),
           color = SrOrange,
-          trackColor = SrOutlineVariant,
+          trackColor = trackColor,
         )
       } else {
         Text(
@@ -423,9 +630,9 @@ private fun SettingsCard(
   onRefresh: () -> Unit,
 ) {
   val fieldColors = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = SrBlueDeep,
-    focusedLabelColor = SrBlueDeep,
-    cursorColor = SrBlueDeep,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    cursorColor = MaterialTheme.colorScheme.primary,
   )
 
   Card(

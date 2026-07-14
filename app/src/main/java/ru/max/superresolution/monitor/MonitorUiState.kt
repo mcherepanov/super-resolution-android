@@ -7,4 +7,6 @@ data class MonitorUiState(
   val queueSize: Int? = null,
   val doneToday: Int? = null,
   val updatedAt: String? = null,
+  val appVersion: String? = null,
+  val appBuild: Int? = null,
 )

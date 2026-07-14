@@ -42,6 +42,8 @@ object MonitorEngine {
           queueSize = null,
           doneToday = null,
           updatedAt = null,
+          appVersion = null,
+          appBuild = null,
         ),
       )
       false
@@ -77,6 +79,8 @@ object MonitorEngine {
         queueSize = queue,
         doneToday = done,
         updatedAt = formatTimestamp(response.timestamp),
+        appVersion = response.appVersion,
+        appBuild = response.appBuild,
       ),
     )
   }
