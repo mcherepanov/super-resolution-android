@@ -52,6 +52,35 @@ data class ReadyJobsResponse(
     @SerializedName("jobs") val jobs: List<ReadyJob>,
 )
 
+data class JobItem(
+    @SerializedName("id") val id: Int,
+    @SerializedName("filename") val filename: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("job_type") val jobType: String? = null,
+    @SerializedName("output_format") val outputFormat: String? = null,
+    @SerializedName("options_summary") val optionsSummary: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("started_at") val startedAt: String? = null,
+    @SerializedName("finished_at") val finishedAt: String? = null,
+    @SerializedName("duration_sec") val durationSec: Double? = null,
+    @SerializedName("progress_pct") val progressPct: Double? = null,
+    @SerializedName("progress_detail") val progressDetail: String? = null,
+    @SerializedName("error_message") val errorMessage: String? = null,
+    @SerializedName("cancel_requested") val cancelRequested: Boolean = false,
+    @SerializedName("can_cancel") val canCancel: Boolean = false,
+)
+
+data class JobsListResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("jobs") val jobs: List<JobItem>,
+)
+
+data class CancelJobResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("job") val job: JobItem? = null,
+)
+
 data class DeleteInputResponse(
     @SerializedName("status") val status: String,
     @SerializedName("deleted") val deleted: String,

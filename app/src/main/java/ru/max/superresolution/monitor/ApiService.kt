@@ -9,11 +9,12 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.Streaming
 
 interface ApiService {
     @GET("api/mobile-status")
-    suspend fun getMobileStatus(): StatusResponse
+    suspend fun getMobileStatus(@Query("tz") tz: String): StatusResponse
 
     @GET("api/input/files")
     suspend fun listInputFiles(): InputFilesResponse
@@ -27,6 +28,12 @@ interface ApiService {
 
     @POST("api/process")
     suspend fun process(@Body body: ProcessRequest): ProcessResponse
+
+    @GET("api/jobs")
+    suspend fun listJobs(@Query("limit") limit: Int = 100): JobsListResponse
+
+    @POST("api/jobs/{id}/cancel")
+    suspend fun cancelJob(@Path("id") jobId: Int): CancelJobResponse
 
     @GET("api/jobs/ready")
     suspend fun listReadyJobs(): ReadyJobsResponse

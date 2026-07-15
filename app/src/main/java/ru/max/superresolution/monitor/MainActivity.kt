@@ -26,6 +26,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Folder
@@ -82,6 +83,7 @@ import kotlinx.coroutines.withContext
 private enum class AppDestination(val title: String, val icon: ImageVector) {
   Monitor("Монитор", Icons.Filled.MonitorHeart),
   Files("Файлы", Icons.Filled.Folder),
+  Jobs("Задачи", Icons.AutoMirrored.Filled.ListAlt),
   Settings("Настройки", Icons.Filled.Settings),
   About("О приложении", Icons.Filled.Info),
 }
@@ -338,6 +340,10 @@ private fun MonitorScreen(
             config = connectionConfig.copy(host = host.trim()),
             isVisible = destination == AppDestination.Files,
           )
+          AppDestination.Jobs -> JobsTab(
+            config = connectionConfig.copy(host = host.trim()),
+            isVisible = destination == AppDestination.Jobs,
+          )
           AppDestination.Settings -> SettingsDestination(
             host = host,
             onHostChange = { host = it },
@@ -390,6 +396,8 @@ private fun MonitorDestination(
         workersBusy = uiState.workersBusy,
         queueSize = uiState.queueSize,
         doneToday = uiState.doneToday,
+        doneYesterday = uiState.doneYesterday,
+        readyDownloads = uiState.readyDownloads,
         updatedAt = uiState.updatedAt,
       )
       uiState.lastError?.let { error ->
@@ -552,6 +560,8 @@ private fun InfoCard(
   workersBusy: Int,
   queueSize: Int?,
   doneToday: Int?,
+  doneYesterday: Int?,
+  readyDownloads: Int?,
   updatedAt: String?,
 ) {
   val statusColor = when (isOnline) {
@@ -665,13 +675,10 @@ private fun InfoCard(
 
       Spacer(modifier = Modifier.height(4.dp))
 
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-      ) {
-        Text("В очереди: ${queueSize?.toString() ?: "—"}")
-        Text("Готово сегодня: ${doneToday?.toString() ?: "—"}")
-      }
+      Text("В очереди: ${queueSize?.toString() ?: "—"}")
+      Text("К скачиванию: ${readyDownloads?.toString() ?: "—"}")
+      Text("Готово сегодня: ${doneToday?.toString() ?: "—"}")
+      Text("Готово вчера: ${doneYesterday?.toString() ?: "—"}")
 
       updatedAt?.let {
         Text(

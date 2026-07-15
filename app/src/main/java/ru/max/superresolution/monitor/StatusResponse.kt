@@ -1,4 +1,3 @@
-
 package ru.max.superresolution.monitor
 
 import com.google.gson.annotations.SerializedName
@@ -22,7 +21,11 @@ data class StatusResponse(
     @SerializedName("queue_size") val queueSize: Int,
     @SerializedName("workers_total") val workersTotal: Int,
     @SerializedName("workers_busy") val workersBusy: Int,
+    @SerializedName("timezone") val timezone: String? = null,
+    @SerializedName("local_date") val localDate: String? = null,
     @SerializedName("tasks_completed_today") val tasksCompletedToday: Int? = null,
+    @SerializedName("tasks_completed_yesterday") val tasksCompletedYesterday: Int? = null,
+    @SerializedName("ready_downloads") val readyDownloads: Int? = null,
     @SerializedName("current_job") val currentJob: CurrentJob? = null,
     @SerializedName("error_message") val errorMessage: String? = null,
 )

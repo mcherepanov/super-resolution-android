@@ -4,6 +4,7 @@ import android.content.Context
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object MonitorEngine {
   private var previousWorkActive: Boolean? = null
@@ -32,7 +33,8 @@ object MonitorEngine {
 
     return try {
       val api = NetworkClient.createApi(config.host, config.port, config.username, config.password)
-      applyResponse(context, api.getMobileStatus(), config.notificationsEnabled)
+      val tz = TimeZone.getDefault().id
+      applyResponse(context, api.getMobileStatus(tz), config.notificationsEnabled)
       true
     } catch (e: Exception) {
       MonitorRepository.update(
@@ -41,6 +43,8 @@ object MonitorEngine {
           workersBusy = 0,
           queueSize = null,
           doneToday = null,
+          doneYesterday = null,
+          readyDownloads = null,
           updatedAt = null,
           appVersion = null,
           appBuild = null,
@@ -60,6 +64,8 @@ object MonitorEngine {
     val busy = response.workersBusy
     val workNow = queue > 0 || busy > 0
     val done = response.tasksCompletedToday ?: 0
+    val doneYesterday = response.tasksCompletedYesterday
+    val ready = response.readyDownloads
 
     if (notificationsEnabled) {
       val workEnded = previousWorkActive == true && !workNow
@@ -79,6 +85,8 @@ object MonitorEngine {
         workersBusy = busy,
         queueSize = queue,
         doneToday = done,
+        doneYesterday = doneYesterday,
+        readyDownloads = ready,
         updatedAt = formatTimestamp(response.timestamp),
         appVersion = response.appVersion,
         appBuild = response.appBuild,
