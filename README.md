@@ -1,15 +1,24 @@
 # SR Monitor (super-resolution-android)
 
-Android-приложение для мониторинга очереди обработки аудио на сервере [super-resolution](https://gitverse.ru/Max_Cherep/super-resolution).
+Android-приложение для мониторинга и управления очередью обработки аудио на сервере [super-resolution](https://gitverse.ru/Max_Cherep/super-resolution).
 
-Показывает статус worker, текущую задачу, прогресс и очередь. При завершении всех задач — уведомление со звуком (если включено).
+Показывает статус worker, текущую задачу и прогресс, историю задач, загрузку/скачивание файлов. При завершении всех задач — уведомление со звуком (если включено).
 
-![Главный экран приложения](docs/images/ui.png)
+![Монитор](docs/images/ui.png)
+
+![Файлы](docs/images/ui-files.png)
+
+![Задачи](docs/images/ui-jobs.png)
+
+![Меню](docs/images/ui-drawer.png)
 
 ## Возможности
 
-- **Монитор** — статус worker, очередь, прогресс текущей задачи, уведомления при завершении
-- **Файлы** — загрузка на сервер, запуск AI → FLAC, скачивание готовых, удаление из input (с прогресс-баром при transfer)
+- **Монитор** — ONLINE/OFFLINE, текущая задача с прогрессом, очередь, готово сегодня/вчера (по TZ телефона), файлы к скачиванию
+- **Файлы** — загрузка на сервер, AI → FLAC, скачивание готовых, удаление из input
+- **Задачи** — история, статусы, прерывание / снятие с очереди
+- **Настройки** — адрес сервера, порт, логин/пароль, уведомления
+- **Тема** — светлая / тёмная
 
 ## Быстрый старт
 
@@ -52,7 +61,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## API
 
 ```
-GET http://<host>:8080/api/mobile-status
+GET http://<host>:8080/api/mobile-status?tz=<IANA>
 ```
 
 Авторизация: HTTP Basic (если на сервере задан пароль).
@@ -62,8 +71,12 @@ GET http://<host>:8080/api/mobile-status
 | `queue_size` | задач в очереди |
 | `workers_busy` | worker занят (0/1) |
 | `workers_total` | consumer в RabbitMQ |
-| `tasks_completed_today` | готово за сегодня (UTC) |
+| `tasks_completed_today` | готово за сегодня (локальный день по `tz`) |
+| `tasks_completed_yesterday` | готово за вчера |
+| `ready_downloads` | готово к скачиванию |
 | `current_job` | текущая задача (имя, прогресс, фильтры) |
+
+Также: `GET /api/jobs`, `POST /api/jobs/{id}/cancel`, input/upload/download endpoints.
 
 ## Документация
 
