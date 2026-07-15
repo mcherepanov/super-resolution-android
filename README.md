@@ -6,19 +6,19 @@ Android-приложение для мониторинга и управлени
 
 ### Монитор
 
-![Монитор](docs/images/ui.png)
+<img src="docs/images/ui.png" width="270" alt="Монитор">
 
 ### Файлы
 
-![Файлы](docs/images/ui-files.png)
+<img src="docs/images/ui-files.png" width="270" alt="Файлы">
 
 ### Задачи
 
-![Задачи](docs/images/ui-jobs.png)
+<img src="docs/images/ui-jobs.png" width="270" alt="Задачи">
 
 ### Меню
 
-![Меню](docs/images/ui-drawer.png)
+<img src="docs/images/ui-drawer.png" width="270" alt="Меню">
 
 ## Возможности
 
